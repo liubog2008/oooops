@@ -1,0 +1,23 @@
+apiVersion: flow.oooops.com/v1alpha1
+kind: Flow
+metadata:
+  name: oooops-example
+spec:
+  mode: once
+  sources:
+  - git:
+      repository: github.com/liubog2008/oooops
+      type: "branch"
+      # default is master
+      matches: "dev"
+  enviroments:
+  - name: "compile"
+    envTemplateName: "go-1.12"
+    commands:
+    - go build -v .
+  - name: "build"
+    envTemplateName: "dind"
+    commands:
+    - docker build -t "xxx" .
+  destination:
+    deployDir: "/deploy"
