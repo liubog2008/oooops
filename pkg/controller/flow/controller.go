@@ -7,6 +7,7 @@ import (
 	"github.com/liubog2008/oooops/pkg/client/clientset"
 	flowinformers "github.com/liubog2008/oooops/pkg/client/informers/flow/v1alpha1"
 	flowlisters "github.com/liubog2008/oooops/pkg/client/listers/flow/v1alpha1"
+	batchv1 "k8s.io/api/batch/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	batchinformers "k8s.io/client-go/informers/batch/v1"
@@ -30,6 +31,9 @@ type ControllerOptions struct {
 
 	// JobInformer defines informer of job
 	JobInformer batchinformers.JobInformer
+
+	// SCMImage defines image for scm
+	SCMImage string
 }
 
 // Controller defines flow controller to control CI/CD flow
@@ -44,6 +48,16 @@ type Controller struct {
 
 	jobQueue  workqueue.RateLimitingInterface
 	jobLister batchlisters.JobLister
+
+	scmImage string
+
+	jobCaches map[string]JobCache
+}
+
+// JobCache defines cache of jobs
+type JobCache struct {
+	hash  string
+	cache map[string]*batchv1.Job
 }
 
 // NewController return a flow controller
@@ -59,6 +73,9 @@ func NewController(options *ControllerOptions) *Controller {
 		},
 		flowQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "flow"),
 		jobQueue:  workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "flow job"),
+
+		jobCaches: map[string]JobCache{},
+		scmImage:  options.SCMImage,
 	}
 
 	options.FlowInformer.Informer().AddEventHandler(

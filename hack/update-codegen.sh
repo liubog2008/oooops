@@ -8,6 +8,7 @@ SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")/..
 # defines absolute root path
 ROOT_PATH=${ROOT_PATH:-$(cd ${SCRIPT_ROOT}; pwd -P)}
 CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo k8s.io/code-generator)}
+GO_HEADER_FILE=${ROOT_PATH}/hack/boilerplate.go.txt
 
 
 OUTPUT_DIR=${ROOT_PATH}/_output
@@ -41,7 +42,7 @@ REGISTER_GEN="${OUTPUT_DIR}/register-gen"
 go build -o "${REGISTER_GEN}" ${CODEGEN_PKG}/cmd/register-gen
 
 echo "Generating register func for ${GROUP_VERSIONS}"
-${REGISTER_GEN} --input-dirs $(join , "${EXT_APIS[@]}")
+${REGISTER_GEN} --input-dirs $(join , "${EXT_APIS[@]}") --go-header-file ${GO_HEADER_FILE}
 
 
 
@@ -50,7 +51,7 @@ DEEPCOPY_GEN="${OUTPUT_DIR}/deepcopy-gen"
 go build -o "${DEEPCOPY_GEN}" ${CODEGEN_PKG}/cmd/deepcopy-gen
 
 echo "Generating deepcopy funcs for ${GROUP_VERSIONS}"
-${DEEPCOPY_GEN} --input-dirs $(join , "${EXT_APIS[@]}") -O zz_generated.deepcopy --bounding-dirs ${EXT_APIS_PKG}
+${DEEPCOPY_GEN} --input-dirs $(join , "${EXT_APIS[@]}") -O zz_generated.deepcopy --bounding-dirs ${EXT_APIS_PKG} --go-header-file ${GO_HEADER_FILE}
 
 
 
@@ -59,7 +60,7 @@ DEFAULTER_GEN="${OUTPUT_DIR}/defaulter-gen"
 go build -o "${DEFAULTER_GEN}" ${CODEGEN_PKG}/cmd/defaulter-gen
 
 echo "Generating defaulters for ${GROUP_VERSIONS}"
-${DEFAULTER_GEN}  --input-dirs $(join , "${EXT_APIS[@]}") -O zz_generated.defaults
+${DEFAULTER_GEN}  --input-dirs $(join , "${EXT_APIS[@]}") -O zz_generated.defaults --go-header-file ${GO_HEADER_FILE}
 
 
 
@@ -68,7 +69,7 @@ CLIENT_GEN="${OUTPUT_DIR}/client-gen"
 go build -o "${CLIENT_GEN}" ${CODEGEN_PKG}/cmd/client-gen
 
 echo "Generating clientset for ${GROUP_VERSIONS} at ${OUTPUT_PKG}/clientset"
-${CLIENT_GEN} --clientset-name clientset --input-base "" --input $(join , "${EXT_APIS[@]}") --output-package ${OUTPUT_PKG}
+${CLIENT_GEN} --clientset-name clientset --input-base "" --input $(join , "${EXT_APIS[@]}") --output-package ${OUTPUT_PKG} --go-header-file ${GO_HEADER_FILE}
 
 
 
@@ -77,7 +78,7 @@ LISTER_GEN="${OUTPUT_DIR}/lister-gen"
 go build -o "${LISTER_GEN}" ${CODEGEN_PKG}/cmd/lister-gen
 
 echo "Generating listers for ${GROUP_VERSIONS} at ${OUTPUT_PKG}/listers"
-${LISTER_GEN} --input-dirs $(join , "${EXT_APIS[@]}") --output-package ${OUTPUT_PKG}/listers
+${LISTER_GEN} --input-dirs $(join , "${EXT_APIS[@]}") --output-package ${OUTPUT_PKG}/listers --go-header-file ${GO_HEADER_FILE}
 
 
 
@@ -91,4 +92,5 @@ ${INFORMER_GEN} \
     --versioned-clientset-package ${OUTPUT_PKG}/clientset \
     --single-directory \
     --listers-package ${OUTPUT_PKG}/listers \
-    --output-package ${OUTPUT_PKG}/informers
+    --output-package ${OUTPUT_PKG}/informers \
+    --go-header-file ${GO_HEADER_FILE}

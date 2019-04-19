@@ -39,40 +39,72 @@ type FlowSpec struct {
 	// Selector defines label selector for pod
 	Selector *metav1.LabelSelector
 
-	// Sources defines code source
-	Sources CodeSource `json:"sources"`
+	// Source defines code source
+	Source CodeSource `json:"source"`
 
-	// Stage defines flow flow stage
-	Stages []Stage `json:"stages"`
+	// Images defines container images' config
+	Images []Image `json:"images"`
 
 	// Destination defines deploy config
 	Destination Destination `json:"destination"`
 
-	// VolumeClaimTemplates defines whether
-	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates"`
+	// Stage defines flow flow stage
+	Stages []Stage `json:"stages"`
+
+	// VolumeClaimTemplate defines whether
+	VolumeClaimTemplate v1.PersistentVolumeClaim `json:"volumeClaimTemplate"`
 }
 
 // FlowStatus defines status of CI/CD flow
 type FlowStatus struct {
-	// Phase defines current phase of flow
+	// Phase used to mark a simple phase of flow
 	Phase string `json:"phase"`
+
+	// Stage defines current stage of flow
+	Stage string `json:"stage"`
+
+	// Conditions defines flow conditions
+	Conditions []FlowCondition `json:"conditions"`
 }
 
 // CodeSource defines source of code, e.g. github
 type CodeSource struct {
+	// Name defines name of the code source
+	Name string `json:"name"`
 	// Git defines git source
 	Git GitSource `json:"git,omitempty"`
 }
 
+// Image defines container image config
+type Image struct {
+	// Name defines name of the image
+	// Name can be referred by deploy template
+	Name string `json:"name"`
+	// Repository defines image repository
+	Repository string `json:"repository"`
+	// Path defines the path of image config
+	// e.g. Dockerfile
+	// TODO(liubog2008): support relative path of code source
+	Path string `json:"path"`
+}
+
+// When defines when to run the stage
 type When string
 
-const ()
+const (
+	// WhenCodeReady defines time point after code is ready
+	WhenCodeReady When = "CodeReady"
+	// WhenImageReady defines time point after iamge is ready
+	WhenImageReady When = "ImageReady"
+	// WhenApplicationReady defines time point after application is ready
+	WhenApplicationReady When = "ApplicationReady"
+)
 
 // Stage defines CI/CD stage config
 type Stage struct {
 	// Name defines name of enviroment
 	Name string `json:"name"`
-
+	// When defines when to run the stage
 	When When `json:"when"`
 	// TemplateName defines pod template of enviroment
 	TemplateName string `json:"template"`
@@ -83,8 +115,8 @@ type Stage struct {
 // Destination defines config
 // TODO(liubog2008): add different config
 type Destination struct {
-	// DeployDir defines dir which contains deploy yaml templates
-	DeployDir string `json:"deployDir"`
+	// Path defines dir which contains deploy yaml templates
+	Path string `json:"path"`
 }
 
 // GitSource is a config of git
@@ -93,7 +125,7 @@ type GitSource struct {
 	Repository string `json:"repository"`
 
 	// Type defines git source from
-	// e.g. branch, pr, release
+	// e.g. branch, pr, release, revision
 	Type GitSourceType `json:"type"`
 
 	// Matches defines matcher of git source
@@ -110,13 +142,16 @@ type GitSourceType string
 const (
 	// GitBranch defines git source from specified branch
 	// Default branch is master
-	GitBranch GitSourceType = "branch"
+	GitBranch GitSourceType = "Branch"
 	// GitPullRequest defines git source from a pull request
 	// Default is the latest pull request
-	GitPullRequest GitSourceType = "pullRequest"
+	GitPullRequest GitSourceType = "PullRequest"
 	// GitRelease defines git source from a release tag
-	// Default is the latest release
-	GitRelease GitSourceType = "release"
+	// TODO(liubog2008): default should use latest release
+	GitRelease GitSourceType = "Release"
+	// GitRevision defines git source from a specified revision
+	// Default is the latest commit of master branch
+	GitRevision GitSourceType = "Revision"
 )
 
 // FlowConditionType defines condition type of flow
@@ -155,4 +190,18 @@ type FlowCondition struct {
 const (
 	// LabelStage used to defines stage of flow
 	LabelStage = "alpha.oooops.com/stage"
+
+	// LabelFlowHash used to defines flow definitions
+	LabelFlowHash = "alpha.oooops.com/hash"
+)
+
+const (
+	// StageSCM defines internal stage to fetch codes
+	StageSCM = "scm"
+
+	// StageImage defines internal stage to build and push image
+	StageImage = "image"
+
+	// StageDeploy defines internal stage to deploy application
+	StageDeploy = "deploy"
 )
