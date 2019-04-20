@@ -39,8 +39,8 @@ type FlowSpec struct {
 	// Selector defines label selector for pod
 	Selector *metav1.LabelSelector
 
-	// Source defines code source
-	Source CodeSource `json:"source"`
+	// Sources defines code source
+	Sources []CodeSource `json:"sources"`
 
 	// Images defines container images' config
 	Images []Image `json:"images"`
@@ -86,6 +86,9 @@ type Image struct {
 	// e.g. Dockerfile
 	// TODO(liubog2008): support relative path of code source
 	Path string `json:"path"`
+
+	// WorkDir defines work dir to build image
+	WorkDir string `json:"workDir"`
 }
 
 // When defines when to run the stage

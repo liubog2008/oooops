@@ -253,7 +253,7 @@ func (c *Controller) generatePVC(flow *v1alpha1.Flow) *v1.PersistentVolumeClaim 
 }
 
 func (c *Controller) generateCodeSourceYAML(flow *v1alpha1.Flow) (string, error) {
-	body, err := yaml.Marshal(&flow.Spec.Source)
+	body, err := yaml.Marshal(&flow.Spec.Sources)
 	if err != nil {
 		return "", err
 	}

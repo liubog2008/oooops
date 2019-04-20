@@ -18,16 +18,16 @@ func init() {
 	cmd.PersistentFlags().StringVarP(&rootDir, "dir", "d", "", "path of the root directory")
 }
 
-func readCodeSource(file string) (*v1alpha1.CodeSource, error) {
+func readCodeSource(file string) ([]v1alpha1.CodeSource, error) {
 	body, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-	cs := v1alpha1.CodeSource{}
+	cs := []v1alpha1.CodeSource{}
 	if err := yaml.Unmarshal(body, &cs); err != nil {
 		return nil, err
 	}
-	return &cs, nil
+	return cs, nil
 }
 
 var cmd = cobra.Command{

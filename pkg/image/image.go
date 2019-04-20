@@ -22,8 +22,9 @@ func New(path string) (Manager, error) {
 
 // BuildAndPush implements image.Manager
 func (m *imageManager) BuildAndPush(im *v1alpha1.Image) error {
-	if err := m.docker.Build(im.Path, im.Repository); err != nil {
+	d := m.docker.WorkDir(im.WorkDir)
+	if err := d.Build(im.Path, im.Repository); err != nil {
 		return err
 	}
-	return m.docker.Push(im.Repository)
+	return d.Push(im.Repository)
 }

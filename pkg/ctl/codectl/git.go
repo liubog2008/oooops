@@ -26,11 +26,12 @@ var gitCmd = cobra.Command{
 		m, err := source.New(rootDir)
 		if err != nil {
 			klog.Fatalf("can't create source manager with root dir %s: %v", rootDir, err)
-			return
 		}
-		if err := m.Fetch(cs); err != nil {
-			klog.Fatalf("can't fetch code: %v", err)
-			return
+		for _, c := range cs {
+			if err := m.Fetch(&c); err != nil {
+				klog.Fatalf("can't fetch code: %v", err)
+				return
+			}
 		}
 	},
 }

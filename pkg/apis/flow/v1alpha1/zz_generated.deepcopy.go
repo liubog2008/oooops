@@ -145,7 +145,11 @@ func (in *FlowSpec) DeepCopyInto(out *FlowSpec) {
 		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
-	out.Source = in.Source
+	if in.Sources != nil {
+		in, out := &in.Sources, &out.Sources
+		*out = make([]CodeSource, len(*in))
+		copy(*out, *in)
+	}
 	if in.Images != nil {
 		in, out := &in.Images, &out.Images
 		*out = make([]Image, len(*in))
