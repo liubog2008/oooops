@@ -1,0 +1,45 @@
+module github.com/liubog2008/oooops
+
+go 1.12
+
+require (
+	github.com/davecgh/go-spew v1.1.1
+	github.com/evanphx/json-patch v4.1.0+incompatible
+	github.com/ghodss/yaml v1.0.0
+	github.com/gogo/protobuf v1.2.1
+	github.com/golang/protobuf v1.3.1
+	github.com/google/btree v1.0.0
+	github.com/google/gofuzz v1.0.0
+	github.com/googleapis/gnostic v0.2.0
+	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc
+	github.com/hashicorp/golang-lru v0.5.1
+	github.com/imdario/mergo v0.3.7
+	github.com/inconshreveable/mousetrap v1.0.0
+	github.com/json-iterator/go v1.1.6
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
+	github.com/petar/GoLLRB v0.0.0-20130427215148-53be0d36a84c
+	github.com/peterbourgon/diskv v2.0.1+incompatible
+	github.com/pmezard/go-difflib v1.0.0
+	github.com/spf13/cobra v0.0.3
+	github.com/spf13/pflag v1.0.3
+	github.com/stretchr/testify v1.3.0
+	golang.org/x/crypto v0.0.0-20190417174047-f416ebab96af
+	golang.org/x/net v0.0.0-20190415214537-1da14a5a36f2
+	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
+	golang.org/x/sys v0.0.0-20190416152802-12500544f89f
+	golang.org/x/text v0.3.0
+	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
+	golang.org/x/tools v0.0.0-20190418235243-4796d4bd3df0
+	google.golang.org/appengine v1.5.0
+	gopkg.in/inf.v0 v0.9.1
+	gopkg.in/yaml.v2 v2.2.2
+	k8s.io/api v0.0.0-20190222213804-5cb15d344471
+	k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
+	k8s.io/client-go v0.0.0-20190404034449-b9d8bc3e502a
+	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
+	k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
+	k8s.io/klog v0.3.0
+	k8s.io/kube-openapi v0.0.0-20190401085232-94e1e7b7574c
+	sigs.k8s.io/yaml v1.1.0
+)

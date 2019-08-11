@@ -14,10 +14,17 @@ spec:
   - name: "compile"
     envTemplateName: "go-1.12"
     commands:
-    - go build -v .
+    - go
+    - build
+    - -v
+    - .
   - name: "build"
     envTemplateName: "dind"
     commands:
-    - docker build -t "xxx" .
+    - docker
+    - build
+    - -t
+    - "xxx"
+    - .
   destination:
     deployDir: "/deploy"

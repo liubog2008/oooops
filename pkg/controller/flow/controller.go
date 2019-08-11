@@ -18,6 +18,10 @@ import (
 	"k8s.io/klog"
 )
 
+// WorkerFactory defines factory function to create worker
+// queue + sync handler => worker
+type WorkerFactory func(queue workqueue.RateLimitingInterface, handler func(key string) error) func() bool
+
 // ControllerOptions defines options to flow controller
 type ControllerOptions struct {
 	// KubeClient defines interface of raw kubernetes API
@@ -52,6 +56,8 @@ type Controller struct {
 	scmImage string
 
 	jobCaches map[string]JobCache
+
+	workerFactory WorkerFactory
 }
 
 // JobCache defines cache of jobs
@@ -74,8 +80,9 @@ func NewController(options *ControllerOptions) *Controller {
 		flowQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "flow"),
 		jobQueue:  workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "flow job"),
 
-		jobCaches: map[string]JobCache{},
-		scmImage:  options.SCMImage,
+		jobCaches:     map[string]JobCache{},
+		scmImage:      options.SCMImage,
+		workerFactory: defaultWorker,
 	}
 
 	options.FlowInformer.Informer().AddEventHandler(
@@ -96,8 +103,9 @@ func NewController(options *ControllerOptions) *Controller {
 	return &c
 }
 
-func (c *Controller) worker(queue workqueue.RateLimitingInterface, handler func(key string) error) func() {
-	workFunc := func() bool {
+// defaultWorker defines default function to create a worker
+func defaultWorker(queue workqueue.RateLimitingInterface, handler func(key string) error) func() bool {
+	return func() bool {
 		key, quit := queue.Get()
 		if quit {
 			return true
@@ -112,15 +120,18 @@ func (c *Controller) worker(queue workqueue.RateLimitingInterface, handler func(
 		queue.Forget(key)
 		return false
 	}
+}
 
-	return func() {
+func waitUntil(f func() bool, stopCh <-chan struct{}) {
+	forever := func() {
 		for {
-			if quit := workFunc(); quit {
+			if quit := f(); quit {
 				klog.Infof("flow controller worker shutting down")
 				return
 			}
 		}
 	}
+	go wait.Until(forever, time.Second, stopCh)
 }
 
 // Run will start the flow controller
@@ -137,7 +148,7 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
 	}
 
 	for i := 0; i < workers; i++ {
-		go wait.Until(c.worker(c.flowQueue, c.syncFlowHandler), time.Second, stopCh)
+		waitUntil(c.workerFactory(c.flowQueue, c.syncFlowHandler), stopCh)
 	}
 	<-stopCh
 }
