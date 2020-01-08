@@ -3,12 +3,15 @@ package pipe
 import (
 	"fmt"
 
+	"github.com/liubog2008/oooops/pkg/client/clientset"
 	"github.com/liubog2008/oooops/pkg/client/clientset/scheme"
 	marioinformers "github.com/liubog2008/oooops/pkg/client/informers/mario/v1alpha1"
 	mariolisters "github.com/liubog2008/oooops/pkg/client/listers/mario/v1alpha1"
 	"github.com/liubog2008/oooops/pkg/controller"
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -16,7 +19,9 @@ import (
 )
 
 type ControllerOptions struct {
-	MarioInformer marioinformers.MarioInformer
+	KubeClient kubernetes.Interface
+
+	ExtClient clientset.Interface
 
 	EventInformer marioinformers.EventInformer
 
@@ -28,13 +33,18 @@ type ControllerOptions struct {
 // Controller defines controller to manage pipe lifecycle and generate flow
 type Controller struct {
 	kubeClient kubernetes.Interface
+	extClient  clientset.Interface
 
-	pipeLister mariolisters.PipeLister
-
+	pipeLister  mariolisters.PipeLister
 	eventLister mariolisters.EventLister
+	flowLister  mariolisters.FlowLister
+
+	informersSynced []cache.InformerSynced
 
 	eventBroadcaster record.EventBroadcaster
 	eventRecorder    record.EventRecorder
+
+	queue workqueue.RateLimitingInterface
 
 	buildReconciler controller.ReconcilerBuilder
 }
@@ -51,13 +61,14 @@ func NewController(opt *ControllerOptions) *Controller {
 		informersSynced: []cache.InformerSynced{
 			opt.PipeInformer.Informer().HasSynced,
 			opt.EventInformer.Informer().HasSynced,
-			opt.MarioInformer.Informer().HasSynced,
+			opt.FlowInformer.Informer().HasSynced,
 		},
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "pipe"),
 
 		pipeLister:  opt.PipeInformer.Lister(),
 		eventLister: opt.EventInformer.Lister(),
+		flowLister:  opt.FlowInformer.Lister(),
 
 		eventBroadcaster: broadcaster,
 		eventRecorder:    recorder,

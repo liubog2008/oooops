@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The oooops Authors.
+Copyright 2020 The oooops Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -93,6 +93,18 @@ func (c *FakeFlows) Create(flow *v1alpha1.Flow) (result *v1alpha1.Flow, err erro
 func (c *FakeFlows) Update(flow *v1alpha1.Flow) (result *v1alpha1.Flow, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(flowsResource, c.ns, flow), &v1alpha1.Flow{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.Flow), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeFlows) UpdateStatus(flow *v1alpha1.Flow) (*v1alpha1.Flow, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(flowsResource, "status", c.ns, flow), &v1alpha1.Flow{})
 
 	if obj == nil {
 		return nil, err

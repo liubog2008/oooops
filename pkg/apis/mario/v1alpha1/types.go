@@ -12,6 +12,18 @@ const (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// MarioList defines list of pipe
+type MarioList struct {
+	metav1.TypeMeta `json:",inline"`
+	// +optional
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Items defines an array of mario
+	Items []Mario `json:"items" protobuf:"bytes,2,rep,name=items"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // PipeList defines list of pipe
 type PipeList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -128,9 +140,14 @@ type PipeSpec struct {
 	// Stages defines pipe stages which will be run
 	// +optional
 	Stages []Stage `json:"stages,omitempty" protobuf:"bytes,3,rep,name=stages"`
+
+	// VolumeClaimTemplate defines template of volume to store git code
+	// +optional
+	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty" protobuf:"bytes,4,opt,name=volumeClaimTemplate"`
 }
 
 // PipeStatus defines status of pipe
+// TODO(liubog2008): add conditions  of pipe
 type PipeStatus struct {
 	Phase string
 }
@@ -160,7 +177,7 @@ type EventSpec struct {
 	When When `json:"when" protobuf:"bytes,2,opt,name=when"`
 	// Version defines version of git repo
 	// It is git ref in fact
-	Version string `json:"version" protobuf:"bytes,3,opt,name=version"`
+	Ref string `json:"version" protobuf:"bytes,3,opt,name=ref"`
 
 	// Extra defines extra info of event
 	// It can be used by action env
@@ -187,13 +204,13 @@ const (
 // Git defines git info
 type Git struct {
 	// Repo defines git repo
-	Repo string `josn:"repo" protobuf:"bytes,1,opt,name=repo"`
+	Repo string `json:"repo" protobuf:"bytes,1,opt,name=repo"`
+	// Ref defines git repo ref
+	// +optional
+	Ref string `json:"ref" protobuf:"bytes,2,opt,name=ref"`
 	// GitPullSecret defines secret for git to pull code
 	// +optional
-	GitPullSecret corev1.LocalObjectReference `json:"gitPullSecret" protobuf:"bytes,2,opt,name=gitPullSecret"`
-	// VolumeClaimTemplate defines template of volume to store git code
-	// +optional
-	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty" protobuf:"bytes,3,opt,name=volumeClaimTemplate"`
+	GitPullSecret corev1.LocalObjectReference `json:"gitPullSecret" protobuf:"bytes,3,opt,name=gitPullSecret"`
 }
 
 // Stage defines stage of pipe
@@ -203,6 +220,11 @@ type Stage struct {
 	// Action defines action from mario
 	Action string `json:"action" protobuf:"bytes,2,opt,name=action"`
 }
+
+const (
+	// DefaultFlowRevisionLabel defines label key of flow revision
+	DefaultFlowRevisionLabel = "flow.oooops.com/revision"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -216,19 +238,41 @@ type Flow struct {
 	// Spec defines desired props of flow
 	// +optional
 	Spec FlowSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+
+	// Status defines desired props of flow
+	// +optional
+	Status FlowStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // FlowSpec defines spec of flow
 type FlowSpec struct {
-	// Pipe means which pipe the flow belongs to
-	Pipe string `json:"pipe" protobuf:"bytes,1,opt,name=pipe"`
-
 	// Mario defines mario info of flow
 	// +optional
-	Mario *Mario `json:"mario" protobuf:"mario,2,opt,name=mario"`
+	Mario *Mario `json:"mario" protobuf:"mario,1,opt,name=mario"`
+
+	// Git defines git info of flow
+	// +optional
+	Git Git `json:"git" protobuf:"git,2,opt,name=git"`
+
 	// Stages defines stages of flow
 	// +optional
 	Stages []Stage `json:"stages,omitempty" protobuf:"bytes,3,rep,name=stages"`
+
+	// VolumeClaim defines pvc referenced by this flow
+	VolumeClaim string `json:"volumeClaim,omitempty" protobuf:"bytes,4,opt,name=volumeClaim"`
+}
+
+const (
+	// FlowPending means flow is pending
+	FlowPending = "Pending"
+	// FlowRunning means flow is running
+	FlowRunning = "Running"
+)
+
+// FlowStatus defines status of flow
+// TODO(liubog2008): add conditions  of flow
+type FlowStatus struct {
+	Phase string `josn:"phase,omitempty" protobuf:"bytes,1,opt,name=phase"`
 }
 
 // JobTemplateSpec defines template of mario job

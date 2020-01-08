@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// Options defines running options of CI/CD for ML
+// Options defines running options of mario
 type Options struct {
 	Addr       string
 	RootPath   string
@@ -32,7 +32,7 @@ func NewOptions() (*Options, error) {
 	return opt, nil
 }
 
-// AddFlags adds flags for ML options
+// AddFlags adds flags for mario options
 func (opt *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&opt.Addr, "addr", opt.Addr, "listen address")
 	fs.StringVar(&opt.RootPath, "root-path", opt.RootPath, "root path of git repo")
