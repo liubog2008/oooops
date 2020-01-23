@@ -1,0 +1,181 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: flows.mario.oooops.com
+spec:
+  group: mario.oooops.com
+  names:
+    kind: Flow
+    listKind: FlowList
+    plural: flows
+    singular: flow
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Flow is a queue of jobs which will be run one by one
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines desired props of flow
+            properties:
+              git:
+                description: Git defines git info of flow
+                properties:
+                  gitPullSecret:
+                    description: GitPullSecret defines secret for git to pull code
+                    properties:
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    type: object
+                  ref:
+                    description: Ref defines git repo ref
+                    type: string
+                  repo:
+                    description: Repo defines git repo
+                    type: string
+                required:
+                - repo
+                type: object
+              mario:
+                description: Mario defines mario info of flow
+                nullable: true
+                properties:
+                  apiVersion:
+                    description: 'APIVersion defines the versioned schema of this
+                      representation of an object. Servers should convert recognized
+                      schemas to the latest internal value, and may reject unrecognized
+                      values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+                    type: string
+                  kind:
+                    description: 'Kind is a string value representing the REST resource
+                      this object represents. Servers may infer this from the endpoint
+                      the client submits requests to. Cannot be updated. In CamelCase.
+                      More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                    type: string
+                  metadata:
+                    type: object
+                  spec:
+                    description: Spec defines desired props of Mario
+                    properties:
+                      actions:
+                        description: Actions defines actions of the project e.g. compile,
+                          test
+                        items:
+                          description: Action defines custom action defined by users
+                          properties:
+                            name:
+                              description: Name defines action name
+                              type: string
+                            template:
+                              description: Template defines template of action job
+                              properties:
+                                metadata:
+                                  type: object
+                                spec:
+                                  description: Spec defines job sepc
+                                  properties:
+                                    containers:
+                                      description: Containers defines container of
+                                        job
+                                      items:
+                                        description: Container defines container of
+                                          job
+                                        properties:
+                                          args:
+                                            items:
+                                              type: string
+                                            type: array
+                                          command:
+                                            items:
+                                              type: string
+                                            type: array
+                                          image:
+                                            type: string
+                                          name:
+                                            description: Name defines unique key in
+                                              containers name
+                                            type: string
+                                        required:
+                                        - name
+                                        type: object
+                                      type: array
+                                  type: object
+                              type: object
+                            workingDir:
+                              description: WorkingDir defines dir to run action, it
+                                will always be the git project root dir
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      versionEnv:
+                        description: VersionEnv defines env name whose value will
+                          be the version
+                        type: string
+                    type: object
+                type: object
+              stages:
+                description: Stages defines stages of flow
+                items:
+                  description: Stage defines stage of pipe
+                  properties:
+                    action:
+                      description: Action defines action from mario
+                      type: string
+                    name:
+                      description: Name defines stage name
+                      type: string
+                  required:
+                  - action
+                  - name
+                  type: object
+                type: array
+              volumeClaim:
+                description: VolumeClaim defines pvc referenced by this flow
+                type: string
+            type: object
+          status:
+            default:
+              phase: Pending
+            description: Status defines desired props of flow
+            properties:
+              phase:
+                description: Phase of flow
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

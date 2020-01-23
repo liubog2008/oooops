@@ -1,0 +1,12 @@
+apiVersion: mario.oooops.com/v1alpha1
+kind: Event
+metadata:
+  name: "test-event"
+  namespace: ${NAMESPACE}
+spec:
+  repo: https://github.com/liubog2008/oooops
+  when: "git:push"
+  ref: v1.0.0
+status:
+  phase: Pending
+

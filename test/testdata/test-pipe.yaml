@@ -1,0 +1,15 @@
+apiVersion: mario.oooops.com/v1alpha1
+kind: Pipe
+metadata:
+  name: "test-pipe"
+  namespace: ${NAMESPACE}
+spec:
+  git:
+    repo: https://github.com/liubog2008/oooops
+  when:
+  - "git:push"
+  stages:
+  - name: compile
+    action: compile
+
+
