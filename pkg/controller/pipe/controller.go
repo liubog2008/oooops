@@ -18,6 +18,7 @@ import (
 	"k8s.io/klog"
 )
 
+// ControllerOptions defines options of the controller
 type ControllerOptions struct {
 	KubeClient kubernetes.Interface
 
@@ -49,6 +50,7 @@ type Controller struct {
 	buildReconciler controller.ReconcilerBuilder
 }
 
+// NewController returns the pipe controller
 func NewController(opt *ControllerOptions) *Controller {
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartLogging(klog.Infof)
@@ -57,6 +59,7 @@ func NewController(opt *ControllerOptions) *Controller {
 
 	c := &Controller{
 		kubeClient: opt.KubeClient,
+		extClient:  opt.ExtClient,
 
 		informersSynced: []cache.InformerSynced{
 			opt.PipeInformer.Informer().HasSynced,
@@ -80,6 +83,12 @@ func NewController(opt *ControllerOptions) *Controller {
 		AddFunc:    c.addPipe,
 		UpdateFunc: c.updatePipe,
 		DeleteFunc: c.deletePipe,
+	})
+
+	opt.EventInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.addEvent,
+		UpdateFunc: c.updateEvent,
+		DeleteFunc: c.deleteEvent,
 	})
 
 	return c

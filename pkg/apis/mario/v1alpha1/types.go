@@ -117,6 +117,9 @@ const (
 
 // Pipe defines a pipe which will be triggered by event and generate flow to
 // run many jobs
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Repo",type=string,JSONPath=`.spec.git.repo`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 type Pipe struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -134,9 +137,9 @@ type Pipe struct {
 type PipeSpec struct {
 	// Git defines git info
 	Git Git `json:"git" protobuf:"bytes,1,opt,name=git"`
-	// On defines when pipe will be triggered
+	// When defines when pipe will be triggered
 	// +optional
-	On []When `json:"on,omitempty" protobuf:"bytes,2,rep,name=on"`
+	When []When `json:"when,omitempty" protobuf:"bytes,2,rep,name=when"`
 	// Stages defines pipe stages which will be run
 	// +optional
 	Stages []Stage `json:"stages,omitempty" protobuf:"bytes,3,rep,name=stages"`
@@ -149,13 +152,17 @@ type PipeSpec struct {
 // PipeStatus defines status of pipe
 // TODO(liubog2008): add conditions  of pipe
 type PipeStatus struct {
-	Phase string
+	// Phase defines phase of pipe
+	Phase string `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase"`
 }
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Event defines event which can trigger pipe to generate flow
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Repo",type=string,JSONPath=`.spec.git.repo`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 type Event struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -164,9 +171,6 @@ type Event struct {
 	// Spec defines desired props of Event
 	// +optional
 	Spec EventSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-
-	// Status defines status of event
-	Status EventStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // EventSpec defines event which will trigger some pipes
@@ -175,31 +179,14 @@ type EventSpec struct {
 	Repo string `json:"repo" protobuf:"bytes,1,opt,name=repo"`
 	// When defines when the event triggered
 	When When `json:"when" protobuf:"bytes,2,opt,name=when"`
-	// Version defines version of git repo
-	// It is git ref in fact
-	Ref string `json:"version" protobuf:"bytes,3,opt,name=ref"`
+	// Ref defines version of git repo
+	Ref string `json:"ref" protobuf:"bytes,3,opt,name=ref"`
 
 	// Extra defines extra info of event
 	// It can be used by action env
 	// +optional
 	Extra map[string]string `json:"extra" protobuf:"bytes,4,opt,name=extra"`
 }
-
-// EventStatus defines status of event
-type EventStatus struct {
-	Phase string `json:"phase"`
-}
-
-const (
-	// EventPending means event is waiting to be consumed
-	EventPending = "Pending"
-
-	// EventConsuming means event is being consuming
-	EventConsuming = "Consuming"
-
-	// EventConsumed means event is consumed
-	EventConsumed = "Consumed"
-)
 
 // Git defines git info
 type Git struct {
@@ -230,6 +217,8 @@ const (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Flow is a queue of jobs which will be run one by one
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 type Flow struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -241,6 +230,7 @@ type Flow struct {
 
 	// Status defines desired props of flow
 	// +optional
+	// +kubebuilder:default={phase:"Pending"}
 	Status FlowStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
@@ -248,7 +238,8 @@ type Flow struct {
 type FlowSpec struct {
 	// Mario defines mario info of flow
 	// +optional
-	Mario *Mario `json:"mario" protobuf:"mario,1,opt,name=mario"`
+	// +nullable
+	Mario *Mario `json:"mario,omitempty" protobuf:"mario,1,opt,name=mario"`
 
 	// Git defines git info of flow
 	// +optional
@@ -272,7 +263,8 @@ const (
 // FlowStatus defines status of flow
 // TODO(liubog2008): add conditions  of flow
 type FlowStatus struct {
-	Phase string `josn:"phase,omitempty" protobuf:"bytes,1,opt,name=phase"`
+	// Phase of flow
+	Phase string `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase"`
 }
 
 // JobTemplateSpec defines template of mario job
