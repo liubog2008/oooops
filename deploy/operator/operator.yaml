@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: operator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: operator
+    spec:
+      serviceAccountName: operator
+      containers:
+      - image: ${REGISTRY}/${GROUP}/${PROJECT}-operator:${VERSION}
+        imagePullPolicy: IfNotPresent
+        command:
+        - /app/operator
+        - --namespace=${NAMESPACE}
+        - --v=6
+        name: operator
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: operator
+  namespace: ${NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: operator
+  namespace: ${NAMESPACE}
+rules:
+- apiGroups:
+  - mario.oooops.com
+  resources:
+  - pipes
+  - flows
+  - events
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - update
+  - patch
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: operator
+  namespace: ${NAMESPACE}
+subjects:
+- kind: ServiceAccount
+  name: operator
+  namespace: ${NAMESPACE}
+roleRef:
+  kind: Role
+  name: operator
+  apiGroup: rbac.authorization.k8s.io

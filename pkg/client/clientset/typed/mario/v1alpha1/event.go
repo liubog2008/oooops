@@ -39,7 +39,6 @@ type EventsGetter interface {
 type EventInterface interface {
 	Create(*v1alpha1.Event) (*v1alpha1.Event, error)
 	Update(*v1alpha1.Event) (*v1alpha1.Event, error)
-	UpdateStatus(*v1alpha1.Event) (*v1alpha1.Event, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1alpha1.Event, error)
@@ -127,22 +126,6 @@ func (c *events) Update(event *v1alpha1.Event) (result *v1alpha1.Event, err erro
 		Namespace(c.ns).
 		Resource("events").
 		Name(event.Name).
-		Body(event).
-		Do().
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *events) UpdateStatus(event *v1alpha1.Event) (result *v1alpha1.Event, err error) {
-	result = &v1alpha1.Event{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("events").
-		Name(event.Name).
-		SubResource("status").
 		Body(event).
 		Do().
 		Into(result)

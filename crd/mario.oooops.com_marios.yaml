@@ -1,0 +1,102 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: marios.mario.oooops.com
+spec:
+  group: mario.oooops.com
+  names:
+    kind: Mario
+    listKind: MarioList
+    plural: marios
+    singular: mario
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Mario is API for user to define project action such as compile
+          and build
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines desired props of Mario
+            properties:
+              actions:
+                description: Actions defines actions of the project e.g. compile,
+                  test
+                items:
+                  description: Action defines custom action defined by users
+                  properties:
+                    name:
+                      description: Name defines action name
+                      type: string
+                    template:
+                      description: Template defines template of action job
+                      properties:
+                        metadata:
+                          type: object
+                        spec:
+                          description: Spec defines job sepc
+                          properties:
+                            containers:
+                              description: Containers defines container of job
+                              items:
+                                description: Container defines container of job
+                                properties:
+                                  args:
+                                    items:
+                                      type: string
+                                    type: array
+                                  command:
+                                    items:
+                                      type: string
+                                    type: array
+                                  image:
+                                    type: string
+                                  name:
+                                    description: Name defines unique key in containers
+                                      name
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              type: array
+                          type: object
+                      type: object
+                    workingDir:
+                      description: WorkingDir defines dir to run action, it will always
+                        be the git project root dir
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              versionEnv:
+                description: VersionEnv defines env name whose value will be the version
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

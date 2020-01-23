@@ -32,7 +32,7 @@ func NewCommand() *cobra.Command {
 
 			stopCh := make(chan struct{})
 			if err := Run(cfg, stopCh); err != nil {
-				klog.Fatalf("run mario failed: %v", err)
+				klog.Fatalf("run operator failed: %v", err)
 			}
 		},
 	}
@@ -43,6 +43,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
+// NewVersionCmd return cmd reports version
 func NewVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "version",
@@ -54,7 +55,7 @@ func NewVersionCmd() *cobra.Command {
 	return cmd
 }
 
-// Run runs the mario
+// Run runs the operator
 func Run(cfg *config.Config, stopCh chan struct{}) error {
 	c := pipe.NewController(&pipe.ControllerOptions{
 		KubeClient: cfg.KubeClient,
@@ -69,6 +70,8 @@ func Run(cfg *config.Config, stopCh chan struct{}) error {
 	go cfg.ExtInformerFactory.Start(stopCh)
 
 	go c.Run(1, stopCh)
+
+	<-stopCh
 
 	return nil
 }

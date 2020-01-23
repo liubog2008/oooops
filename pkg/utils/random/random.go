@@ -5,9 +5,15 @@ package random
 import (
 	"math/rand"
 	"strings"
+	"time"
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyz1234567890"
+
 const (
 	// 6 bits to represent a letter index
 	letterIdxBits = 6

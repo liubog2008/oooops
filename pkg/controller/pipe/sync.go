@@ -29,9 +29,10 @@ func (c *Controller) syncPipe(key string) error {
 
 	pipe, err := c.pipeLister.Pipes(ns).Get(name)
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			return err
+		if errors.IsNotFound(err) {
+			return nil
 		}
+		return err
 	}
 
 	events, err := c.listWatchedEvents(pipe)
@@ -40,6 +41,7 @@ func (c *Controller) syncPipe(key string) error {
 	}
 
 	for _, event := range events {
+		klog.V(6).Infof("consume event: %v/%v", event.Namespace, event.Name)
 		if err := c.generateFlow(pipe, event); err != nil {
 			return err
 		}
@@ -61,22 +63,9 @@ func (c *Controller) listWatchedEvents(pipe *v1alpha1.Pipe) ([]*v1alpha1.Event, 
 		}
 	}
 
-	return watched, nil
-}
+	klog.V(6).Infof("event total: %v, watched by pipe %v: %v", len(events), pipe.Name, len(watched))
 
-func isWatched(pipe *v1alpha1.Pipe, event *v1alpha1.Event) bool {
-	if event.Status.Phase == v1alpha1.EventConsumed {
-		return false
-	}
-	if pipe.Spec.Git.Repo != event.Spec.Repo {
-		return false
-	}
-	for _, on := range pipe.Spec.On {
-		if on == event.Spec.When {
-			return true
-		}
-	}
-	return false
+	return watched, nil
 }
 
 func (c *Controller) generateFlow(pipe *v1alpha1.Pipe, event *v1alpha1.Event) error {
@@ -114,6 +103,7 @@ func (c *Controller) generateFlow(pipe *v1alpha1.Pipe, event *v1alpha1.Event) er
 			Phase: v1alpha1.FlowPending,
 		},
 	}
+	expectedFlow.Spec.Git.Ref = event.Spec.Ref
 
 	// no flow is selected
 	if len(flows) == 0 {
