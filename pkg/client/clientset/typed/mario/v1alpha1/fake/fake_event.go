@@ -100,18 +100,6 @@ func (c *FakeEvents) Update(event *v1alpha1.Event) (result *v1alpha1.Event, err 
 	return obj.(*v1alpha1.Event), err
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeEvents) UpdateStatus(event *v1alpha1.Event) (*v1alpha1.Event, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(eventsResource, "status", c.ns, event), &v1alpha1.Event{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.Event), err
-}
-
 // Delete takes name of the event and deletes it. Returns an error if one occurs.
 func (c *FakeEvents) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
