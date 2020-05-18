@@ -6,13 +6,14 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/liubog2008/oooops/pkg/apis/mario/v1alpha1"
-	"github.com/liubog2008/oooops/pkg/utils/random"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+
+	"github.com/liubog2008/oooops/pkg/apis/mario/v1alpha1"
+	"github.com/liubog2008/oooops/pkg/utils/random"
 )
 
 func (c *Controller) syncPipe(key string) error {
@@ -85,6 +86,16 @@ func (c *Controller) generateFlow(pipe *v1alpha1.Pipe, event *v1alpha1.Event) er
 	name := genName(pipe)
 
 	pipeSpec := pipe.Spec.DeepCopy()
+	selector := pipeSpec.Selector.DeepCopy()
+
+	if selector == nil || selector.MatchLabels == nil {
+		selector = &metav1.LabelSelector{
+			MatchLabels: map[string]string{},
+		}
+	}
+	selector.MatchLabels[v1alpha1.DefaultFlowRevisionLabel] = hashCode
+
+	owner := metav1.NewControllerRef(pipe, c.GroupVersionKind)
 
 	expectedFlow := &v1alpha1.Flow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -93,11 +104,14 @@ func (c *Controller) generateFlow(pipe *v1alpha1.Pipe, event *v1alpha1.Event) er
 			Labels: map[string]string{
 				v1alpha1.DefaultFlowRevisionLabel: hashCode,
 			},
+			OwnerReferences: []metav1.OwnerReference{
+				*owner,
+			},
 		},
 		Spec: v1alpha1.FlowSpec{
-			Git:         pipeSpec.Git,
-			Stages:      pipeSpec.Stages,
-			VolumeClaim: name,
+			Selector: selector,
+			Git:      pipeSpec.Git,
+			Stages:   pipeSpec.Stages,
 		},
 		Status: v1alpha1.FlowStatus{
 			Phase: v1alpha1.FlowPending,

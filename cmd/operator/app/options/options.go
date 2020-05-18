@@ -4,13 +4,14 @@ package options
 import (
 	"fmt"
 
-	"github.com/liubog2008/oooops/cmd/operator/app/config"
-	"github.com/liubog2008/oooops/pkg/client/clientset"
-	extinformers "github.com/liubog2008/oooops/pkg/client/informers"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/liubog2008/oooops/cmd/operator/app/config"
+	"github.com/liubog2008/oooops/pkg/client/clientset"
+	extinformers "github.com/liubog2008/oooops/pkg/client/informers"
 )
 
 // Options defines running options of operator
@@ -40,7 +41,6 @@ func (opt *Options) AddFlags(fs *pflag.FlagSet) {
 
 // Config parse options to config
 func (opt *Options) Config() (*config.Config, error) {
-
 	restConfig, err := clientcmd.BuildConfigFromFlags("", opt.Kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("can't parse kubeconfig from (%v)", opt.Kubeconfig)
@@ -73,15 +73,22 @@ func (opt *Options) Config() (*config.Config, error) {
 	pipeInformer := extInformerFactory.Mario().V1alpha1().Pipes()
 	flowInformer := extInformerFactory.Mario().V1alpha1().Flows()
 
+	jobInformer := kubeInformerFactory.Batch().V1().Jobs()
+	pvcInformer := kubeInformerFactory.Core().V1().PersistentVolumeClaims()
+
 	c := &config.Config{
-		KubeClient:          kubeClient,
-		ExtClient:           extClient,
+		KubeClient: kubeClient,
+		ExtClient:  extClient,
+
 		KubeInformerFactory: kubeInformerFactory,
 		ExtInformerFactory:  extInformerFactory,
 
 		EventInformer: eventInformer,
 		PipeInformer:  pipeInformer,
 		FlowInformer:  flowInformer,
+
+		JobInformer: jobInformer,
+		PVCInformer: pvcInformer,
 	}
 
 	return c, nil

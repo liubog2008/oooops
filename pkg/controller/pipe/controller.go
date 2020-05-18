@@ -3,12 +3,14 @@ package pipe
 import (
 	"fmt"
 
+	"github.com/liubog2008/oooops/pkg/apis/mario/v1alpha1"
 	"github.com/liubog2008/oooops/pkg/client/clientset"
 	"github.com/liubog2008/oooops/pkg/client/clientset/scheme"
 	marioinformers "github.com/liubog2008/oooops/pkg/client/informers/mario/v1alpha1"
 	mariolisters "github.com/liubog2008/oooops/pkg/client/listers/mario/v1alpha1"
 	"github.com/liubog2008/oooops/pkg/controller"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -33,6 +35,8 @@ type ControllerOptions struct {
 
 // Controller defines controller to manage pipe lifecycle and generate flow
 type Controller struct {
+	schema.GroupVersionKind
+
 	kubeClient kubernetes.Interface
 	extClient  clientset.Interface
 
@@ -58,6 +62,8 @@ func NewController(opt *ControllerOptions) *Controller {
 	recorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "pipe"})
 
 	c := &Controller{
+		GroupVersionKind: v1alpha1.SchemeGroupVersion.WithKind("Pipe"),
+
 		kubeClient: opt.KubeClient,
 		extClient:  opt.ExtClient,
 
@@ -107,7 +113,7 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
 		return
 	}
 
-	klog.Infof("Cache has been synced")
+	klog.Infof("Cache of pipe controller has been synced")
 
 	for i := 0; i < workers; i++ {
 		controller.WaitUntil("pipe", c.buildReconciler(c.queue, c.syncPipe), stopCh)

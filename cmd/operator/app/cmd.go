@@ -3,13 +3,15 @@ package app
 import (
 	"fmt"
 
-	"github.com/liubog2008/oooops/cmd/operator/app/config"
-	"github.com/liubog2008/oooops/cmd/operator/app/options"
-	"github.com/liubog2008/oooops/pkg/controller/pipe"
-	"github.com/liubog2008/oooops/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/klog"
+
+	"github.com/liubog2008/oooops/cmd/operator/app/config"
+	"github.com/liubog2008/oooops/cmd/operator/app/options"
+	"github.com/liubog2008/oooops/pkg/controller/flow"
+	"github.com/liubog2008/oooops/pkg/controller/pipe"
+	"github.com/liubog2008/oooops/pkg/version"
 )
 
 // NewCommand returns app command
@@ -57,7 +59,7 @@ func NewVersionCmd() *cobra.Command {
 
 // Run runs the operator
 func Run(cfg *config.Config, stopCh chan struct{}) error {
-	c := pipe.NewController(&pipe.ControllerOptions{
+	pc := pipe.NewController(&pipe.ControllerOptions{
 		KubeClient: cfg.KubeClient,
 		ExtClient:  cfg.ExtClient,
 
@@ -66,10 +68,20 @@ func Run(cfg *config.Config, stopCh chan struct{}) error {
 		FlowInformer:  cfg.FlowInformer,
 	})
 
+	fc := flow.NewController(&flow.ControllerOptions{
+		KubeClient: cfg.KubeClient,
+		ExtClient:  cfg.ExtClient,
+
+		FlowInformer: cfg.FlowInformer,
+		JobInformer:  cfg.JobInformer,
+		PVCInformer:  cfg.PVCInformer,
+	})
+
 	go cfg.KubeInformerFactory.Start(stopCh)
 	go cfg.ExtInformerFactory.Start(stopCh)
 
-	go c.Run(1, stopCh)
+	go pc.Run(1, stopCh)
+	go fc.Run(1, stopCh)
 
 	<-stopCh
 

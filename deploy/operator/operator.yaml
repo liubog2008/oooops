@@ -44,12 +44,39 @@ metadata:
   name: operator
   namespace: ${NAMESPACE}
 rules:
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - update
+  - patch
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - update
+  - patch
+  - get
+  - list
+  - watch
 - apiGroups:
   - mario.oooops.com
   resources:
   - pipes
   - flows
   - events
+  - pipes/status
+  - flows/status
   verbs:
   - create
   - delete

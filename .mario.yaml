@@ -1,0 +1,22 @@
+apiVersion: mario.oooops.com/v1alpha1
+kind: Mario
+metadata:
+  name: oooops
+spec:
+  actions:
+  - name: compile
+    template:
+      labels:
+        app: oooops
+      spec:
+        containers:
+        - name: compile
+          image: golang:1.13.6
+          command:
+          - go
+          - build
+          - -v
+          - .
+    workingDir: /go/src/github.com/liubog2008/oooops
+    version:
+      envName: VERSION

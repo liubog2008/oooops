@@ -79,6 +79,15 @@ spec:
                               type: array
                           type: object
                       type: object
+                    version:
+                      description: Version defines info of git version
+                      properties:
+                        envName:
+                          description: EnvName defines name of version env
+                          type: string
+                      required:
+                      - envName
+                      type: object
                     workingDir:
                       description: WorkingDir defines dir to run action, it will always
                         be the git project root dir
@@ -87,9 +96,6 @@ spec:
                   - name
                   type: object
                 type: array
-              versionEnv:
-                description: VersionEnv defines env name whose value will be the version
-                type: string
             type: object
         type: object
     served: true
