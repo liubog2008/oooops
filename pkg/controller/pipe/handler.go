@@ -54,7 +54,7 @@ func (c *Controller) deleteEvent(obj interface{}) {
 	}
 	event, ok := tombstone.Obj.(*v1alpha1.Event)
 	if !ok {
-		utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not an Event: %#v", obj))
+		utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not an Event: %#v", tombstone.Obj))
 		return
 	}
 	c.addEvent(event)
@@ -87,7 +87,7 @@ func (c *Controller) deletePipe(obj interface{}) {
 	}
 	pipe, ok := tombstone.Obj.(*v1alpha1.Pipe)
 	if !ok {
-		utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a Pipe: %#v", obj))
+		utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a Pipe: %#v", tombstone.Obj))
 		return
 	}
 	c.addPipe(pipe)

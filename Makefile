@@ -1,5 +1,5 @@
 ROOT := github.com/liubog2008/oooops
-TARGETS := operator
+TARGETS := operator mario
 REGISTRY := registry.cn-hangzhou.aliyuncs.com
 GROUP := liubog2008
 PROJECT := oooops
@@ -83,11 +83,16 @@ test:
 	kubectl delete pipes --all -n $(NAMESPACE)
 	kubectl delete flows --all -n $(NAMESPACE)
 	kubectl delete events.mario.oooops.com --all -n $(NAMESPACE)
+	kubectl delete jobs --all -n $(NAMESPACE)
 	cat $(PWD)/test/testdata/test-pipe.yaml | \
 		NAMESPACE=$(NAMESPACE) \
 		envsubst | \
 		kubectl apply -f -
 	cat $(PWD)/test/testdata/test-event.yaml | \
+		NAMESPACE=$(NAMESPACE) \
+		envsubst | \
+		kubectl apply -f -
+	cat $(PWD)/test/testdata/test-flow.yaml | \
 		NAMESPACE=$(NAMESPACE) \
 		envsubst | \
 		kubectl apply -f -

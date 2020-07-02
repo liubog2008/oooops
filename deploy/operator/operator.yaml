@@ -45,11 +45,46 @@ metadata:
   namespace: ${NAMESPACE}
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - update
+  - patch
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - update
+  - patch
+  - get
+  - list
+  - watch
+- apiGroups:
   - mario.oooops.com
   resources:
   - pipes
   - flows
   - events
+  - pipes/status
+  - flows/status
   verbs:
   - create
   - delete

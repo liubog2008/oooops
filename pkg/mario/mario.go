@@ -4,17 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/liubog2008/oooops/pkg/apis/mario/v1alpha1"
-	"github.com/liubog2008/oooops/pkg/git"
 	"github.com/liubog2008/pkg/http/errors"
+	"github.com/munnerz/goautoneg"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
+
+	"github.com/liubog2008/oooops/pkg/apis/mario/v1alpha1"
+	"github.com/liubog2008/oooops/pkg/client/clientset/scheme"
+	"github.com/liubog2008/oooops/pkg/mario/git"
 )
 
 const (
@@ -29,67 +33,80 @@ var (
 
 	// ErrHasBeenConsumed defines error that mario file has been consumed by others
 	ErrHasBeenConsumed = errors.MustNewFactory(http.StatusUnprocessableEntity, "HasBeenConumsed", "mario file has been consumed")
+
+	ErrNotAcceptable = errors.MustNewFactory(http.StatusNotAcceptable, "NotAcceptable", "only these media types [%{accepted}] are accepted")
+
+	ErrEncoding = errors.MustNewFactory(http.StatusInternalServerError, "FailedToEncode", "can't encode mario to response: %{err}")
 )
 
-type mario struct {
-	gitCmd git.Interface
+type Interface interface {
+	Run(stopCh chan struct{}) error
+}
 
-	workDir string
+type Config struct {
+	GitCommand              git.Interface
+	Addr                    string
+	GracefulShutdownTimeout time.Duration
+
+	Remote string
+	Ref    string
+
+	Token string
+}
+
+type mario struct {
+	gitCmd                  git.Interface
+	addr                    string
+	gracefulShutdownTimeout time.Duration
+	remote                  string
+	ref                     string
 
 	token string
 
-	gracefulShutdownTimeout time.Duration
-
-	lock sync.Mutex
-
+	lock    sync.Mutex
 	counter int
 
-	addr string
-
-	// wait is a channel used to wait after net listen
-	// it is used for testing
-	wait chan<- struct{}
-}
-
-func newWithWait(local, remote, addr, token string, wait chan<- struct{}) (Interface, error) {
-	gitCmd, err := git.New(local)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := gitCmd.WithRepo(remote); err != nil {
-		return nil, err
-	}
-
-	m := mario{
-		gitCmd:  gitCmd,
-		workDir: local,
-		addr:    addr,
-		token:   token,
-		wait:    wait,
-	}
-
-	return &m, nil
+	obj *v1alpha1.Mario
 }
 
 // New returns a mario interface
-func New(local, remote, addr, token string) (Interface, error) {
-	return newWithWait(local, remote, addr, token, nil)
+func New(c *Config) Interface {
+	m := mario{
+		gitCmd:                  c.GitCommand,
+		addr:                    c.Addr,
+		gracefulShutdownTimeout: c.GracefulShutdownTimeout,
+		remote:                  c.Remote,
+		ref:                     c.Ref,
+		token:                   c.Token,
+	}
+
+	return &m
 }
 
-func (m *mario) Checkout(ref string) error {
-	if err := m.gitCmd.Fetch(ref); err != nil {
+func (m *mario) Run(stopCh chan struct{}) error {
+	if err := m.gitCmd.Verify(m.remote, m.ref); err != nil {
 		return err
 	}
 
-	if err := m.gitCmd.Clean(); err != nil {
+	body, err := ioutil.ReadFile(v1alpha1.MarioFile)
+	if err != nil {
 		return err
 	}
 
-	return m.gitCmd.Checkout(ref)
+	decoder := scheme.Codecs.UniversalDecoder(v1alpha1.SchemeGroupVersion)
+
+	marioObj := v1alpha1.Mario{}
+
+	if _, _, err := decoder.Decode(body, nil, &marioObj); err != nil {
+		return err
+	}
+
+	m.obj = &marioObj
+
+	return m.serve(stopCh)
 }
 
-func (m *mario) Serve(stopCh chan struct{}) error {
+func (m *mario) serve(stopCh chan struct{}) error {
 	klog.Infof("mario begin to serve file")
 	startTime := time.Now()
 	defer func() {
@@ -97,6 +114,7 @@ func (m *mario) Serve(stopCh chan struct{}) error {
 	}()
 
 	router := http.NewServeMux()
+	router.HandleFunc("/healthz", m.health)
 	router.HandleFunc("/", m.handleFunc(stopCh))
 
 	svr := &http.Server{
@@ -112,10 +130,6 @@ func (m *mario) Serve(stopCh chan struct{}) error {
 	ln, err := net.Listen("tcp", m.addr)
 	if err != nil {
 		return err
-	}
-
-	if m.wait != nil {
-		close(m.wait)
 	}
 
 	go waitToShutdown(svr, m.gracefulShutdownTimeout, stopCh, done)
@@ -149,6 +163,19 @@ func (m *mario) handleFunc(stopCh chan<- struct{}) func(w http.ResponseWriter, r
 			writeError(w, ErrUnauthorized.New(err))
 			return
 		}
+		supported := scheme.Codecs.SupportedMediaTypes()
+		info := isAcceptable(r.Header.Get("Accept"), supported)
+		if info == nil {
+			mediaTypes := []string{}
+			for i := range supported {
+				info := &supported[i]
+				mediaTypes = append(mediaTypes, info.MediaType)
+			}
+			writeError(w, ErrNotAcceptable.New(mediaTypes))
+			return
+		}
+		s := info.Serializer
+		encoder := scheme.Codecs.EncoderForVersion(s, v1alpha1.SchemeGroupVersion)
 
 		m.lock.Lock()
 
@@ -161,8 +188,40 @@ func (m *mario) handleFunc(stopCh chan<- struct{}) func(w http.ResponseWriter, r
 		m.counter++
 		m.lock.Unlock()
 
-		http.ServeFile(w, r, filepath.Join(m.workDir, v1alpha1.MarioFile))
+		if err := encoder.Encode(m.obj, w); err != nil {
+			writeError(w, ErrEncoding.New(err))
+		}
+
 		close(stopCh)
+	}
+}
+
+func isAcceptable(header string, accepted []runtime.SerializerInfo) *runtime.SerializerInfo {
+	if len(header) == 0 && len(accepted) > 0 {
+		return &accepted[0]
+	}
+
+	clauses := goautoneg.ParseAccept(header)
+	for i := range clauses {
+		clause := &clauses[i]
+		for i := range accepted {
+			accepts := &accepted[i]
+			switch {
+			case clause.Type == accepts.MediaTypeType && clause.SubType == accepts.MediaTypeSubType,
+				clause.Type == accepts.MediaTypeType && clause.SubType == "*",
+				clause.Type == "*" && clause.SubType == "*":
+				return accepts
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *mario) health(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("ok")); err != nil {
+		klog.Errorf("can't write response: %v", err)
 	}
 }
 
@@ -171,10 +230,7 @@ func (m *mario) checkToken(r *http.Request) error {
 	if v == "" {
 		return fmt.Errorf("token is not found, please set token into Authorization header")
 	}
-	typeAndToken := strings.Split(v, " ")
-	if len(typeAndToken) != 2 {
-		return fmt.Errorf("bad token format, expected: Bearer $token, actual: %s", v)
-	}
+	typeAndToken := strings.SplitN(v, " ", 2)
 	typ := strings.TrimSpace(typeAndToken[0])
 	if typ != tokenType {
 		return fmt.Errorf("bad token format, invalid token type, expected: %s, actual: %s", tokenType, typ)

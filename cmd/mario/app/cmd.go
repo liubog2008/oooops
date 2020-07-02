@@ -3,14 +3,17 @@ package app
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"github.com/liubog2008/oooops/cmd/mario/app/config"
 	"github.com/liubog2008/oooops/cmd/mario/app/options"
 	"github.com/liubog2008/oooops/pkg/mario"
 	"github.com/liubog2008/oooops/pkg/version"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"k8s.io/klog"
 )
 
 // NewCommand returns app command
@@ -21,22 +24,29 @@ func NewCommand() *cobra.Command {
 	}
 	cmd := &cobra.Command{
 		Use:  "mario",
-		Long: "mario use git to fetch and checkout repo, and serve mario file to others",
+		Long: "mario verify working dir, and attach mario onto flow",
 		Run: func(cmd *cobra.Command, args []string) {
-			klog.Infof("Version: %v", version.Version())
-			printFlags(cmd.Flags())
-
 			cfg, err := opts.Config()
 			if err != nil {
 				klog.Fatalf("can't parse options to config: %v", err)
 			}
 
+			sig := make(chan os.Signal)
+			signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
 			stopCh := make(chan struct{})
+
+			go func() {
+				<-sig
+				close(stopCh)
+			}()
+
 			if err := Run(cfg, stopCh); err != nil {
 				klog.Fatalf("run mario failed: %v", err)
 			}
 		},
 	}
+
 	opts.AddFlags(cmd.Flags())
 
 	cmd.AddCommand(NewVersionCmd())
@@ -57,18 +67,18 @@ func NewVersionCmd() *cobra.Command {
 
 // Run runs the mario
 func Run(cfg *config.Config, stopCh chan struct{}) error {
-	m, err := mario.New(cfg.RootPath, cfg.RemotePath, cfg.Addr, cfg.Token)
-	if err != nil {
-		return err
+	c := mario.Config{
+		GitCommand:              cfg.GitCommand,
+		Addr:                    cfg.Addr,
+		GracefulShutdownTimeout: cfg.GracefulShutdownTimeout,
+		Remote:                  cfg.Remote,
+		Ref:                     cfg.Ref,
+		Token:                   cfg.Token,
 	}
-	if err := m.Checkout(cfg.Ref); err != nil {
-		return err
-	}
-	return m.Serve(stopCh)
-}
+	m := mario.New(&c)
 
-func printFlags(fs *pflag.FlagSet) {
-	fs.VisitAll(func(f *pflag.Flag) {
-		klog.Infof("FLAG: --%v=%v", f.Name, f.Value)
-	})
+	if err := m.Run(stopCh); err != nil {
+		return err
+	}
+	return nil
 }
