@@ -77,7 +77,7 @@ func (c *Controller) generateFlow(pipe *v1alpha1.Pipe, event *v1alpha1.Event) er
 
 	flows, err := c.flowLister.Flows(ns).List(labels.SelectorFromValidatedSet(
 		labels.Set{
-			v1alpha1.DefaultFlowRevisionLabel: hashCode,
+			v1alpha1.DefaultFlowRevisionLabelKey: hashCode,
 		},
 	))
 	if err != nil {
@@ -93,7 +93,7 @@ func (c *Controller) generateFlow(pipe *v1alpha1.Pipe, event *v1alpha1.Event) er
 			MatchLabels: map[string]string{},
 		}
 	}
-	selector.MatchLabels[v1alpha1.DefaultFlowRevisionLabel] = hashCode
+	selector.MatchLabels[v1alpha1.DefaultFlowRevisionLabelKey] = hashCode
 
 	owner := metav1.NewControllerRef(pipe, c.GroupVersionKind)
 
@@ -102,7 +102,7 @@ func (c *Controller) generateFlow(pipe *v1alpha1.Pipe, event *v1alpha1.Event) er
 			Name:      name,
 			Namespace: ns,
 			Labels: map[string]string{
-				v1alpha1.DefaultFlowRevisionLabel: hashCode,
+				v1alpha1.DefaultFlowRevisionLabelKey: hashCode,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				*owner,

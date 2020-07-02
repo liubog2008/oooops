@@ -12,6 +12,7 @@ import (
 func (c *Controller) syncPVC(flow *v1alpha1.Flow, pvc *corev1.PersistentVolumeClaim) error {
 	if pvc != nil {
 		if !metav1.IsControlledBy(pvc, flow) {
+			// TODO(liubog2008): fix pvc name conflict
 			return fmt.Errorf("can't create pvc %s/%s, it exists and is not controlled by flow")
 		}
 

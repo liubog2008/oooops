@@ -43,6 +43,10 @@ type ControllerOptions struct {
 	FlowInformer marioinformers.FlowInformer
 
 	PVCInformer coreinformers.PersistentVolumeClaimInformer
+
+	ConfigMapInformer coreinformers.ConfigMapInformer
+
+	PodInformer coreinformers.PodInformer
 }
 
 // Controller defines controller to manage flow lifecycle and generate jobs
@@ -58,6 +62,8 @@ type Controller struct {
 	flowLister mariolisters.FlowLister
 	jobLister  batchlisters.JobLister
 	pvcLister  corelisters.PersistentVolumeClaimLister
+	cmLister   corelisters.ConfigMapLister
+	podLister  corelisters.PodLister
 
 	informersSynced []cache.InformerSynced
 
@@ -70,7 +76,6 @@ type Controller struct {
 
 	marioImage string
 	gitImage   string
-	gitCommand []string
 }
 
 // NewController returns a flow controller
@@ -87,9 +92,11 @@ func NewController(opt *ControllerOptions) *Controller {
 		extClient:  opt.ExtClient,
 
 		informersSynced: []cache.InformerSynced{
-			opt.JobInformer.Informer().HasSynced,
 			opt.FlowInformer.Informer().HasSynced,
+			opt.JobInformer.Informer().HasSynced,
 			opt.PVCInformer.Informer().HasSynced,
+			opt.ConfigMapInformer.Informer().HasSynced,
+			opt.PodInformer.Informer().HasSynced,
 		},
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "flow"),
@@ -97,6 +104,8 @@ func NewController(opt *ControllerOptions) *Controller {
 		flowLister: opt.FlowInformer.Lister(),
 		jobLister:  opt.JobInformer.Lister(),
 		pvcLister:  opt.PVCInformer.Lister(),
+		cmLister:   opt.ConfigMapInformer.Lister(),
+		podLister:  opt.PodInformer.Lister(),
 
 		eventBroadcaster: broadcaster,
 		eventRecorder:    recorder,
@@ -104,7 +113,7 @@ func NewController(opt *ControllerOptions) *Controller {
 		buildReconciler: controller.BuildRateLimitingReconciler,
 
 		gitImage:   "alpine/git:v2.24.3",
-		marioImage: "busybox",
+		marioImage: "registry.cn-hangzhou.aliyuncs.com/liubog2008/oooops-mario:v0.0.0-1098046dd20868-dirty",
 	}
 
 	opt.FlowInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -117,6 +126,12 @@ func NewController(opt *ControllerOptions) *Controller {
 		AddFunc:    c.addJob,
 		UpdateFunc: c.updateJob,
 		DeleteFunc: c.deleteJob,
+	})
+
+	opt.PodInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.addPod,
+		UpdateFunc: c.updatePod,
+		DeleteFunc: c.deletePod,
 	})
 
 	return c

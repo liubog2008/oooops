@@ -44,10 +44,18 @@ metadata:
   name: operator
   namespace: ${NAMESPACE}
 rules:
-rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
   - persistentvolumeclaims
   verbs:
   - create

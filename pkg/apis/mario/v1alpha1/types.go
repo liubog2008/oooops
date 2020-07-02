@@ -74,26 +74,12 @@ type Mario struct {
 
 // MarioSpec defines spec of Mario
 type MarioSpec struct {
+	// Imports defines import path of external mario action
+	Imports []string `json:"imports,omitempty" protobuf:"bytes,1,rep,name=imports"`
 	// Actions defines actions of the project
 	// e.g. compile, test
 	// +optional
-	Actions []Action `json:"actions,omitempty" protobuf:"bytes,1,rep,name=actions"`
-}
-
-// Action defines custom action defined by users
-type Action struct {
-	// Name defines action name
-	Name string `json:"name" protobuf:"bytes,1,name=name"`
-	// Template defines template of action job
-	// +optional
-	Template *JobTemplateSpec `json:"template,omitempty" protobuf:"bytes,2,opt,name=template"`
-	// WorkingDir defines dir to run action, it will always be the git project
-	// root dir
-	// +optional
-	WorkingDir string `json:"workingDir,omitempty" protobuf:"bytes,3,opt,name=workingDir"`
-	// Version defines info of git version
-	// +optional
-	Version VersionDefinition `json:"version,omitempty" protobuf:"bytes,4,opt,name=version"`
+	Actions []MarioAction `json:"actions,omitempty" protobuf:"bytes,2,rep,name=actions"`
 }
 
 // VersionDefinition defines info of git version
@@ -189,6 +175,7 @@ type EventSpec struct {
 	// When defines when the event triggered
 	When When `json:"when" protobuf:"bytes,2,opt,name=when"`
 	// Ref defines version of git repo
+	// e.g. pull/11/head
 	Ref string `json:"ref" protobuf:"bytes,3,opt,name=ref"`
 
 	// Extra defines extra info of event
@@ -222,8 +209,14 @@ type Stage struct {
 }
 
 const (
-	// DefaultFlowRevisionLabel defines label key of flow revision
-	DefaultFlowRevisionLabel = "flow.oooops.com/revision"
+	// DefaultFlowRevisionLabelKey defines label key of flow revision
+	DefaultFlowRevisionLabelKey = "flow.oooops.com/revision"
+
+	// DefaultFlowStageLabelKey defines label key of flow stage label
+	DefaultFlowStageLabelKey = "flow.oooops.com/stage"
+
+	FlowStageGit   = "git"
+	FlowStageMario = "mario"
 )
 
 const (
@@ -369,30 +362,68 @@ type StageStatus struct {
 	Phase string `json:"phase,omitempty" protobuf:"bytes,2,opt,name=phase"`
 }
 
-// JobTemplateSpec defines template of mario job
-type JobTemplateSpec struct {
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// Action defines an external action which can be imported by mario
+type Action struct {
+	metav1.TypeMeta `json:",inline"`
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// Spec defines job sepc
+	// Spec defines desired props of Action
 	// +optional
-	Spec JobSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec ActionSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
-// JobSpec defines spec of mario job
-type JobSpec struct {
-	// Containers defines container of job
-	Containers []Container `json:"containers,omitempty" protobuf:"bytes,1,rep,name=containers"`
+type ActionSpec struct {
+	Template *ActionTemplate `json:"template"`
+
+	Args []ActionArg `json:"args"`
 }
 
-// Container defines container of job
-type Container struct {
-	// Name defines unique key in containers name
-	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+type ActionArg struct {
+	Name        string `json:"name"`
+	Optional    bool   `json:"optional"`
+	Description string `json:"description"`
+}
+
+type MarioAction struct {
+	// Name defines name of action
+	Name string `json:"name" protobuf:"bytes,1,name=name"`
+	// Template defines action template, if action is an imported one, this field will be ignored
+	Template *ActionTemplate `json:"template,omitempty" protobuf:"bytes,2,opt,name=template"`
+
+	Env []ActionEnvVar `json:"envs,omitempty" protobuf:"rep,3,opt,name=envs"`
+
+	Secrets []ActionSecret `json:"secrets,omitempty" protobuf:"rep,4,opt,name=version"`
+
+	ServiceAccountName string `json:"serviceAccountName,omitempty" protobuf:"bytes,5,opt,name=serviceAccountName"`
+}
+
+type ActionTemplate struct {
 	// +optional
 	Image string `json:"image,omitempty" protobuf:"bytes,2,opt,name=image"`
 	// +optional
 	Command []string `json:"command,omitempty" protobuf:"bytes,3,rep,name=command"`
 	// +optional
 	Args []string `json:"args,omitempty" protobuf:"bytes,4,rep,name=args"`
+
+	// WorkingDir defines dir to run action, it will always be the git project
+	// root dir
+	// +optional
+	WorkingDir string `json:"workingDir,omitempty" protobuf:"bytes,5,opt,name=workingDir"`
+	// Version defines info of git version
+	// +optional
+	Version VersionDefinition `json:"version,omitempty" protobuf:"bytes,6,opt,name=version"`
+}
+
+// ActionEnvVar defines env variable of action
+type ActionEnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type ActionSecret struct {
+	Name      string `json:"name"`
+	MountPath string `json:"mountPath"`
 }

@@ -1,5 +1,5 @@
 ROOT := github.com/liubog2008/oooops
-TARGETS := operator
+TARGETS := operator mario
 REGISTRY := registry.cn-hangzhou.aliyuncs.com
 GROUP := liubog2008
 PROJECT := oooops

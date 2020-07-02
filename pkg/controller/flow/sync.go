@@ -46,28 +46,40 @@ func (c *Controller) syncFlow(key string) error {
 
 	klog.Infof("number of jobs selected by selector %v: %v", selector, len(jobs))
 
+	jobMap := c.calculateJobMap(flow, jobs)
+
+	attached, err := c.attachMario(flow, jobMap)
+	if err != nil {
+		return err
+	}
+
+	if attached {
+		return nil
+	}
+
 	pvc, err := c.pvcLister.PersistentVolumeClaims(ns).Get(name)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
-	jobMap := c.calculateJobMap(flow, jobs)
-
-	updated, err := c.syncFlowStatus(flow, jobMap, pvc)
-	if err != nil {
+	cm, err := c.cmLister.ConfigMaps(ns).Get(name)
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
-	// status is not updated
-	if updated == nil {
-		return nil
+	if err := c.syncConfigMap(flow, cm); err != nil {
+		return err
 	}
 
 	if err := c.syncPVC(flow, pvc); err != nil {
 		return err
 	}
 
-	if err := c.syncJob(updated, jobMap); err != nil {
+	if err := c.syncJob(flow, jobMap); err != nil {
+		return err
+	}
+
+	if _, err := c.syncFlowStatus(flow, jobMap, pvc); err != nil {
 		return err
 	}
 
@@ -87,8 +99,7 @@ func (c *Controller) calculateJobMap(flow *v1alpha1.Flow, jobs []*batchv1.Job) m
 		stage := strings.TrimPrefix(job.Name, flow.Name+"-")
 
 		switch stage {
-		case "git":
-		case "mario":
+		case v1alpha1.FlowStageGit, v1alpha1.FlowStageMario:
 		default:
 			if !strings.HasPrefix(stage, v1alpha1.UserJobPrefix) {
 				msg := fmt.Sprintf("unsupported system stage %s of job(%s/%s)", stage, job.Namespace, job.Name)

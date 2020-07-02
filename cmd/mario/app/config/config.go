@@ -1,12 +1,19 @@
 package config
 
-type Config struct {
-	RootPath   string
-	RemotePath string
+import (
+	"time"
 
-	Addr string
+	"github.com/liubog2008/oooops/pkg/mario/git"
+)
+
+type Config struct {
+	GitCommand git.Interface
+
+	Addr                    string
+	GracefulShutdownTimeout time.Duration
+
+	Remote string
+	Ref    string
 
 	Token string
-
-	Ref string
 }

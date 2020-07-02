@@ -21,6 +21,8 @@ type Config struct {
 	// KubeInformerFactory defines informer factory
 	KubeInformerFactory informers.SharedInformerFactory
 
+	PodInformerFactory informers.SharedInformerFactory
+
 	// ExtInformerFactory defines extension informer factory
 	ExtInformerFactory extinformers.SharedInformerFactory
 
@@ -33,4 +35,8 @@ type Config struct {
 	JobInformer batchinformers.JobInformer
 
 	PVCInformer coreinformers.PersistentVolumeClaimInformer
+
+	ConfigMapInformer coreinformers.ConfigMapInformer
+
+	PodInformer coreinformers.PodInformer
 }

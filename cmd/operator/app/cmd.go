@@ -72,12 +72,15 @@ func Run(cfg *config.Config, stopCh chan struct{}) error {
 		KubeClient: cfg.KubeClient,
 		ExtClient:  cfg.ExtClient,
 
-		FlowInformer: cfg.FlowInformer,
-		JobInformer:  cfg.JobInformer,
-		PVCInformer:  cfg.PVCInformer,
+		FlowInformer:      cfg.FlowInformer,
+		JobInformer:       cfg.JobInformer,
+		PVCInformer:       cfg.PVCInformer,
+		ConfigMapInformer: cfg.ConfigMapInformer,
+		PodInformer:       cfg.PodInformer,
 	})
 
 	go cfg.KubeInformerFactory.Start(stopCh)
+	go cfg.PodInformerFactory.Start(stopCh)
 	go cfg.ExtInformerFactory.Start(stopCh)
 
 	go pc.Run(1, stopCh)

@@ -11,11 +11,6 @@ import (
 	"github.com/liubog2008/oooops/pkg/apis/mario/v1alpha1"
 )
 
-const (
-	// gitSuffix is name suffix of job which will init volume by git
-	gitSuffix = "git"
-)
-
 func (c *Controller) syncFlowStatus(flow *v1alpha1.Flow, jobMap map[string]*batchv1.Job, pvc *corev1.PersistentVolumeClaim) (*v1alpha1.Flow, error) {
 	status, err := c.generateFlowStatus(flow, jobMap, pvc)
 	if err != nil {
@@ -50,7 +45,7 @@ func (c *Controller) calculateStageStatus(stages []v1alpha1.Stage, jobMap map[st
 	for i := range stages {
 		stage := &stages[i]
 
-		job, ok := jobMap[stage.Name]
+		job, ok := jobMap[v1alpha1.UserJobPrefix+stage.Name]
 		if !ok {
 			missingCount++
 			continue
@@ -90,8 +85,8 @@ func (c *Controller) generateFlowStatus(flow *v1alpha1.Flow, jobMap map[string]*
 	pvcCond := generateGitVolumeCondition(pvc)
 	status.Conditions = append(status.Conditions, *pvcCond)
 
-	gitJob := jobMap["git"]
-	marioJob := jobMap["mario"]
+	gitJob := jobMap[v1alpha1.FlowStageGit]
+	marioJob := jobMap[v1alpha1.FlowStageMario]
 
 	marioCond := generateMarioCondition(flow, gitJob, marioJob)
 	status.Conditions = append(status.Conditions, *marioCond)

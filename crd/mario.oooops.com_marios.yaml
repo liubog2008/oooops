@@ -41,60 +41,73 @@ spec:
                 description: Actions defines actions of the project e.g. compile,
                   test
                 items:
-                  description: Action defines custom action defined by users
                   properties:
+                    envs:
+                      items:
+                        description: ActionEnvVar defines env variable of action
+                        properties:
+                          name:
+                            type: string
+                          value:
+                            type: string
+                        required:
+                        - name
+                        - value
+                        type: object
+                      type: array
                     name:
-                      description: Name defines action name
+                      description: Name defines name of action
+                      type: string
+                    secrets:
+                      items:
+                        properties:
+                          mountPath:
+                            type: string
+                          name:
+                            type: string
+                        required:
+                        - mountPath
+                        - name
+                        type: object
+                      type: array
+                    serviceAccountName:
                       type: string
                     template:
-                      description: Template defines template of action job
+                      description: Template defines action template, if action is
+                        an imported one, this field will be ignored
                       properties:
-                        metadata:
-                          type: object
-                        spec:
-                          description: Spec defines job sepc
-                          properties:
-                            containers:
-                              description: Containers defines container of job
-                              items:
-                                description: Container defines container of job
-                                properties:
-                                  args:
-                                    items:
-                                      type: string
-                                    type: array
-                                  command:
-                                    items:
-                                      type: string
-                                    type: array
-                                  image:
-                                    type: string
-                                  name:
-                                    description: Name defines unique key in containers
-                                      name
-                                    type: string
-                                required:
-                                - name
-                                type: object
-                              type: array
-                          type: object
-                      type: object
-                    version:
-                      description: Version defines info of git version
-                      properties:
-                        envName:
-                          description: EnvName defines name of version env
+                        args:
+                          items:
+                            type: string
+                          type: array
+                        command:
+                          items:
+                            type: string
+                          type: array
+                        image:
                           type: string
-                      required:
-                      - envName
+                        version:
+                          description: Version defines info of git version
+                          properties:
+                            envName:
+                              description: EnvName defines name of version env
+                              type: string
+                          required:
+                          - envName
+                          type: object
+                        workingDir:
+                          description: WorkingDir defines dir to run action, it will
+                            always be the git project root dir
+                          type: string
                       type: object
-                    workingDir:
-                      description: WorkingDir defines dir to run action, it will always
-                        be the git project root dir
-                      type: string
                   required:
                   - name
                   type: object
+                type: array
+              imports:
+                description: Imports defines import path of external mario action
+                items:
+                  type: string
                 type: array
             type: object
         type: object
