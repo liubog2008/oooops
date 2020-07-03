@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	"github.com/liubog2008/oooops/pkg/apis/mario/v1alpha1"
 	"github.com/liubog2008/oooops/pkg/client/clientset/scheme"
 	"github.com/liubog2008/oooops/pkg/mario/git"
+	"github.com/liubog2008/oooops/pkg/utils/graceful"
 )
 
 const (
@@ -34,15 +34,27 @@ var (
 	// ErrHasBeenConsumed defines error that mario file has been consumed by others
 	ErrHasBeenConsumed = errors.MustNewFactory(http.StatusUnprocessableEntity, "HasBeenConumsed", "mario file has been consumed")
 
-	ErrNotAcceptable = errors.MustNewFactory(http.StatusNotAcceptable, "NotAcceptable", "only these media types [%{accepted}] are accepted")
+	// ErrNotAcceptable defines error that server can't handle current content type
+	ErrNotAcceptable = errors.MustNewFactory(
+		http.StatusNotAcceptable,
+		"NotAcceptable",
+		"only these media types [%{supported}] are supported, but client only accept [%{accept}]",
+	)
 
-	ErrEncoding = errors.MustNewFactory(http.StatusInternalServerError, "FailedToEncode", "can't encode mario to response: %{err}")
+	// ErrEncoding defines error that server fail to encode mario to specified content type
+	ErrEncoding = errors.MustNewFactory(
+		http.StatusInternalServerError,
+		"FailedToEncode",
+		"can't encode mario to %{contentType}: %{err}",
+	)
 )
 
+// Interface defines interface to verify and serve mario file
 type Interface interface {
-	Run(stopCh chan struct{}) error
+	Run(stopCh <-chan struct{}) error
 }
 
+// Config defines config to run mario server
 type Config struct {
 	GitCommand              git.Interface
 	Addr                    string
@@ -83,7 +95,7 @@ func New(c *Config) Interface {
 	return &m
 }
 
-func (m *mario) Run(stopCh chan struct{}) error {
+func (m *mario) Run(stopCh <-chan struct{}) error {
 	if err := m.gitCmd.Verify(m.remote, m.ref); err != nil {
 		return err
 	}
@@ -106,18 +118,25 @@ func (m *mario) Run(stopCh chan struct{}) error {
 	return m.serve(stopCh)
 }
 
-func (m *mario) serve(stopCh chan struct{}) error {
+func (m *mario) serve(stopCh <-chan struct{}) error {
 	klog.Infof("mario begin to serve file")
 	startTime := time.Now()
 	defer func() {
 		klog.Infof("mario serve file finished, cost (%v)", time.Since(startTime))
 	}()
 
+	done := make(chan struct{})
+
+	go func() {
+		<-stopCh
+		close(done)
+	}()
+
 	router := http.NewServeMux()
 	router.HandleFunc("/healthz", m.health)
-	router.HandleFunc("/", m.handleFunc(stopCh))
+	router.HandleFunc("/", m.handleFunc(done))
 
-	svr := &http.Server{
+	srv := &http.Server{
 		Addr:         m.addr,
 		Handler:      router,
 		ReadTimeout:  5 * time.Second,
@@ -125,53 +144,41 @@ func (m *mario) serve(stopCh chan struct{}) error {
 		IdleTimeout:  15 * time.Second,
 	}
 
-	done := make(chan struct{})
+	g := graceful.New()
 
-	ln, err := net.Listen("tcp", m.addr)
-	if err != nil {
-		return err
-	}
+	defer g.WaitForShutdown(done, m.gracefulShutdownTimeout)
 
-	go waitToShutdown(svr, m.gracefulShutdownTimeout, stopCh, done)
+	g.OnShutdown(func(ctx context.Context) {
+		if err := srv.Shutdown(ctx); err != nil {
+			klog.Fatalf("Could not gracefully shutdown the server: %v", err)
+		}
+	})
 
-	if err := svr.Serve(ln); err != nil && err != http.ErrServerClosed {
-		klog.Errorf("Could not listen on %s: %v", m.addr, err)
-		return err
-	}
-
-	<-done
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			klog.Infof("listen and serve finished: %v", err)
+		}
+	}()
 
 	return nil
 }
 
-func waitToShutdown(server *http.Server, timeout time.Duration, stopCh <-chan struct{}, done chan<- struct{}) {
-	<-stopCh
-	klog.Info("Server is shutting down...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		klog.Fatalf("Could not gracefully shutdown the server: %v", err)
-	}
-	close(done)
-}
-
-func (m *mario) handleFunc(stopCh chan<- struct{}) func(w http.ResponseWriter, r *http.Request) {
+func (m *mario) handleFunc(done chan<- struct{}) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := m.checkToken(r); err != nil {
 			writeError(w, ErrUnauthorized.New(err))
 			return
 		}
 		supported := scheme.Codecs.SupportedMediaTypes()
-		info := isAcceptable(r.Header.Get("Accept"), supported)
+		accept := r.Header.Get("Accept")
+		info := isAcceptable(accept, supported)
 		if info == nil {
 			mediaTypes := []string{}
 			for i := range supported {
 				info := &supported[i]
 				mediaTypes = append(mediaTypes, info.MediaType)
 			}
-			writeError(w, ErrNotAcceptable.New(mediaTypes))
+			writeError(w, ErrNotAcceptable.New(mediaTypes, accept))
 			return
 		}
 		s := info.Serializer
@@ -189,10 +196,10 @@ func (m *mario) handleFunc(stopCh chan<- struct{}) func(w http.ResponseWriter, r
 		m.lock.Unlock()
 
 		if err := encoder.Encode(m.obj, w); err != nil {
-			writeError(w, ErrEncoding.New(err))
+			writeError(w, ErrEncoding.New(info.MediaType, err))
 		}
 
-		close(stopCh)
+		close(done)
 	}
 }
 
