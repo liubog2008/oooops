@@ -3,7 +3,7 @@ module github.com/liubog2008/oooops
 go 1.13
 
 require (
-	github.com/liubog2008/pkg v0.0.0-20191010081121-533828746583
+	github.com/liubog2008/pkg v0.0.0-20200407014943-6c52b714af6b
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.5

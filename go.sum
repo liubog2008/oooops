@@ -94,6 +94,8 @@ github.com/liubog2008/oooops v0.0.0-20190811145438-9c81b8bd2328 h1:lTYmjt3qr7hET
 github.com/liubog2008/oooops v0.0.0-20190811145438-9c81b8bd2328/go.mod h1:gSR3ZqblzhU9R0CzPMH5rKZ1mi1NFXywXBZmNieGfL8=
 github.com/liubog2008/pkg v0.0.0-20191010081121-533828746583 h1:iIzWaPGXW0ESkJ9r9IlqJ+QRwvJkijvTe5Et2GL94NU=
 github.com/liubog2008/pkg v0.0.0-20191010081121-533828746583/go.mod h1:BX4URrn8yj1XhQnKHRuhrdjR8y4kqcn+tKZqEJVo18M=
+github.com/liubog2008/pkg v0.0.0-20200407014943-6c52b714af6b h1:LZP1tWYBPuXl7u7ol8no0l6x0EJ8rWVr609jMk9b2N4=
+github.com/liubog2008/pkg v0.0.0-20200407014943-6c52b714af6b/go.mod h1:WMcOhcQf+xrYNVNmuKiPXIZNcrTL50F0o5ocgHlRJnw=
 github.com/mailru/easyjson v0.0.0-20160728113105-d5b7844b561a/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
